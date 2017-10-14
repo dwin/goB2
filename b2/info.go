@@ -148,6 +148,49 @@ func (creds *Credential) GetBuckets() (buckets t.Buckets, err error) {
 	return buckets, err
 }
 
+// GetFileInfo calls the API using the supplied File ID and returns a type 'File' and error
+func (creds *Credential) GetFileInfo(fileID string) (file t.File, err error) {
+	// Authorize and get API token
+	err = creds.authorize()
+	if err != nil {
+		return file, err
+	}
+
+	// Create JSON body
+	body := bytes.NewBuffer([]byte(`{"fileId": "` + fileID + `"}`))
+
+	// Create client
+	client := &http.Client{}
+
+	// Create request to (POST https://api001.backblazeb2.com/b2api/v1/b2_get_file_info)
+	req, err := http.NewRequest("POST", creds.APIAuth.APIURL+"/b2api/v1/b2_get_file_info", body)
+
+	// Headers
+	req.Header.Add("Authorization", creds.APIAuth.AuthorizationToken)
+	req.Header.Add("Content-Type", "application/json; charset=utf-8")
+
+	// Fetch Request
+	resp, err := client.Do(req)
+	if err != nil {
+		return file, fmt.Errorf("Could not complete GetFileInfo request. Err: %s", err)
+	}
+
+	// Read Response Body
+	respBody, _ := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+
+	if resp.Status != "200 OK" {
+		return file, fmt.Errorf("Error response from API to GetBuckets request. API Resp: %s", string(respBody))
+	}
+	// Parse JSON 'Buckets' Response
+	err = json.Unmarshal(respBody, &file)
+	if err != nil {
+		return file, fmt.Errorf("Unable to unmarshall JSON response. API Resp: %s", string(respBody))
+	}
+
+	return file, err
+}
+
 // PrintBuckets Diplays list of files in console
 func PrintBuckets(buckets t.Buckets) {
 	if buckets.Bucket != nil {
@@ -194,6 +237,7 @@ func PrintFiles(files t.Files) {
 	}
 }
 
+// PrintAPIAuth Display API Authorization information in console
 func PrintAPIAuth(auth t.APIAuthorization) {
 	fmt.Println("--Backblaze B2 API Authorization--")
 	fmt.Println("AccountID:\t" + auth.AccountID)
