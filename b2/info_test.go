@@ -1,6 +1,7 @@
 package b2
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -10,7 +11,12 @@ func TestToGetFiles(t *testing.T) {
 		t.Log(err)
 		t.FailNow()
 	}
-	files, err := cred.GetFiles("b6ee61624837a6c6588b0715", "")
+	buckets, err := cred.GetBuckets()
+	if err != nil {
+		t.Log(err)
+		t.Fail()
+	}
+	files, err := cred.GetFiles(buckets.Bucket[0].BucketID, "")
 	if err != nil {
 		t.Log(err)
 		t.Fail()
@@ -46,4 +52,29 @@ func TestGetBuckets(t *testing.T) {
 	}
 	t.Log(buckets)
 	PrintBuckets(buckets)
+}
+
+func TestGetFileInfo(t *testing.T) {
+	cred, err := New("", "", "")
+	if err != nil {
+		t.Log(err)
+		t.FailNow()
+	}
+	buckets, err := cred.GetBuckets()
+	if err != nil {
+		t.Log(err)
+		t.Fail()
+	}
+	files, err := cred.GetFiles(buckets.Bucket[0].BucketID, "")
+	if err != nil {
+		t.Log(err)
+		t.Fail()
+	}
+	file, err := cred.GetFileInfo(files.File[0].FileID)
+	if err != nil {
+		t.Log(err)
+		t.Fail()
+	}
+	t.Log(file)
+	fmt.Println("File Name: " + file.FileName)
 }
