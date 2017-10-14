@@ -11,14 +11,16 @@ import (
 	"time"
 
 	t "github.com/dwin/goB2/b2/b2Types"
+
+	"github.com/dustin/go-humanize"
 )
 
 // GetFiles returns all files in bucket
-func (creds *Credential) GetFiles(bucketID, startFile string) ([]t.File, error) {
+func (creds *Credential) GetFiles(bucketID, startFile string) (files t.Files, err error) {
 	// Authorize and Get API Token
-	err := creds.authorize()
+	err = creds.authorize()
 	if err != nil {
-		return nil, err
+		return files, err
 	}
 
 	// Create json body
@@ -26,43 +28,26 @@ func (creds *Credential) GetFiles(bucketID, startFile string) ([]t.File, error) 
 	// Create client
 	client := &http.Client{}
 	// Create request
-	req, err := http.NewRequest("POST", creds.APIURL+"/b2api/v1/b2_list_file_names", body)
+	req, err := http.NewRequest("POST", creds.APIAuth.APIURL+"/b2api/v1/b2_list_file_names", body)
 	req.Header.Add("Authorization", creds.APIAuth.AuthorizationToken)
-	/*
-		resp, err := resty.R().
-			SetHeader("Authorization", creds.APIAuth).
-			SetBody(`{"bucketId":"` + bucketId + `","startFileName":"` + startFile + `"}`).
-			Post(creds.APIURL + "/b2api/v1/b2_list_file_names")
-		if err != nil {
-			logger.Fatal("API Communication Error: Could not get filename list",
-				zap.Error(err),
-			)
-		}
-	*/
+
 	// Fetch Request
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return files, err
 	}
 	// Read Response
 	respBody, _ := ioutil.ReadAll(resp.Body)
 	defer resp.Body.Close()
-	var allFiles t.AllFiles
-	err = json.Unmarshal(respBody, &allFiles)
+	if resp.Status != "200 OK" {
+		return files, fmt.Errorf("Error response from API. Err: %s", respBody)
+	}
+	err = json.Unmarshal(respBody, &files)
 	if err != nil {
-		return nil, fmt.Errorf("Error parsing JSON response for request all filenames for bucket %s", bucketID)
+		return files, fmt.Errorf("Error parsing JSON response for request all filenames for bucket %s. Err: %s", bucketID, err)
 	}
 
-	// Display files
-	/*
-		for i := 0; i < len(allFiles.File); i++ {
-			fmt.Printf("\n\nFileID: %v\nFilename: %v\nSHA1: %v\nBlake2b: %v\nSize: %v",
-				allFiles.File[i].FileID, allFiles.File[i].FileName, allFiles.File[i].ContentSha1,
-				allFiles.File[i].FileInfo.ContentBlake2B, allFiles.File[i].Size)
-		}
-	*/
-	return allFiles.File, err
-
+	return files, err
 }
 
 // CreateBucket makes new B2 bucket and returns API response
@@ -163,26 +148,6 @@ func (creds *Credential) GetBuckets() (buckets t.Buckets, err error) {
 	return buckets, err
 }
 
-// PrintFiles Diplays list of files in console
-func PrintFiles(files []t.File) {
-	if len(files) > 1 {
-		writer := new(tabwriter.Writer)
-		fmt.Println("B2 Files")
-		// Format to '|' separated columns with no min width and blank padding char
-		writer.Init(os.Stdout, 0, 5, 1, ' ', 0)
-		fmt.Fprintln(writer, "-NAME-\t -SIZE-\t -ID-\t -UPLOAD TIME-\t")
-		for i := 0; i < len(files); i++ {
-			uploadTime, _ := time.Parse("RFC822", string(files[i].UploadTimestamp))
-			tS := fmt.Sprintf("%s", uploadTime)
-			fmt.Fprintln(writer, files[i].FileName+"\t", string(files[i].Size)+"\t", files[i].FileID+"\t", tS+"\t")
-		}
-		fmt.Fprintln(writer)
-		writer.Flush()
-	} else {
-		fmt.Println("No files")
-	}
-}
-
 // PrintBuckets Diplays list of files in console
 func PrintBuckets(buckets t.Buckets) {
 	if buckets.Bucket != nil {
@@ -199,4 +164,43 @@ func PrintBuckets(buckets t.Buckets) {
 	} else {
 		fmt.Println("No buckets")
 	}
+}
+
+// PrintFiles Diplays list of files in console
+func PrintFiles(files t.Files) {
+	if len(files.File) > 1 {
+		writer := new(tabwriter.Writer)
+		fmt.Println("B2 Files")
+		// Format to '|' separated columns with no min width and blank padding char
+		writer.Init(os.Stdout, 0, 5, 1, ' ', 0)
+		fmt.Fprintln(writer, "-NAME-\t -SIZE-\t -ID-\t -UPLOAD TIME-\t")
+		for i := 0; i < len(files.File); i++ {
+			//uploadTime := fmt.Sprintf("%s", humanize.Time(time.Unix(files.File[i].UploadTimestamp, 0)))
+			// Convert MS to NS
+			uploadTime := time.Unix(0, files.File[i].UploadTimestamp*1000*1000).Format(time.RFC822)
+			// Display folder
+			size := ""
+			if files.File[i].ContentLength == 0 {
+				size = "folder"
+			} else {
+				size = fmt.Sprintf("%s", humanize.Bytes(uint64(files.File[i].ContentLength)))
+			}
+			fmt.Fprintln(writer, files.File[i].FileName+"\t", size+"\t", files.File[i].FileID+"\t", uploadTime+"\t")
+		}
+		fmt.Fprintln(writer)
+		writer.Flush()
+	} else {
+		fmt.Println("No files")
+	}
+}
+
+func PrintAPIAuth(auth t.APIAuthorization) {
+	fmt.Println("--Backblaze B2 API Authorization--")
+	fmt.Println("AccountID:\t" + auth.AccountID)
+	fmt.Println("API URL:\t" + auth.APIURL)
+	fmt.Println("Auth Token:\t" + auth.AuthorizationToken)
+	fmt.Println("Download URL:\t" + auth.DownloadURL)
+	fmt.Printf("Min. Part Size:\t %v, %v\n", auth.MinimumPartSize, humanize.Bytes(uint64(auth.MinimumPartSize)))
+	fmt.Printf("Rec. Min Part Size:\t %v, %v\n", auth.RecommendedPartSize, humanize.Bytes(uint64(auth.RecommendedPartSize)))
+	fmt.Printf("Absolute Min Part Size:\t %v, %v\n", auth.AbsoluteMinPartSize, humanize.Bytes(uint64(auth.AbsoluteMinPartSize)))
 }

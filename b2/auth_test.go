@@ -17,7 +17,7 @@ func TestNewCredandAuth(t *testing.T) {
 		fmt.Println(err)
 		t.Fail()
 	}
-	t.Log("Authorize Credentials success")
-	fmt.Println(cred)
-
+	t.Log(cred)
+	PrintAPIAuth(cred.APIAuth)
+	fmt.Println(t.Name() + " completed")
 }

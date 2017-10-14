@@ -10,6 +10,7 @@ type APIAuthorization struct {
 	RecommendedPartSize int    `json:"recommendedPartSize"`
 	AbsoluteMinPartSize int    `json:"absoluteMinimumPartSize"`
 }
+
 type UploadAuth struct {
 	AuthorizationToken string `json:"authorizationToken"`
 	BucketId           string `json:"bucketId"`
