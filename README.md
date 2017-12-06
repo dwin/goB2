@@ -20,14 +20,14 @@ fmt.Println("BucketID: "+ bucket.BucketID)
 - [x] b2_authorize_account
 - [ ] b2_cancel_large_file
 - [x] b2_create_bucket
-- [ ] b2_delete_bucket
-- [ ] b2_delete_file_version
+- [x] b2_delete_bucket
+- [x] b2_delete_file_version
 - [ ] b2_download_file_by_id
 - [ ] b2_download_file_by_name
 - [ ] b2_get_download_authorization
 - [ ] b2_finish_large_file
 - [x] b2_get_file_info
-- [ ] b2_get_upload_part_url
+- [x] b2_get_upload_part_url
 - [x] b2_get_upload_url
 - [ ] b2_hide_file
 - [x] b2_list_buckets
@@ -39,3 +39,9 @@ fmt.Println("BucketID: "+ bucket.BucketID)
 - [ ] b2_update_bucket
 - [ ] b2_upload_file
 - [ ] b2_upload_part
+
+**To Do:**
+
+- [ ] Find Bucket ID by name
+- [ ] Find FileIDs for given filename
+- [ ] Find Filename for FileID

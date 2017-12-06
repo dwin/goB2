@@ -50,7 +50,7 @@ func (creds *Credential) GetFiles(bucketID, startFile string) (files t.Files, er
 	return files, err
 }
 
-// CreateBucket makes new B2 bucket and returns API response
+// CreateBucket makes new B2 bucket and returns API response and error
 func (creds *Credential) CreateBucket(bucketName string, bucketPublic bool) (bucket t.Bucket, err error) {
 	//TODO: Check bucket name validity
 
@@ -100,6 +100,54 @@ func (creds *Credential) CreateBucket(bucketName string, bucketPublic bool) (buc
 	err = json.Unmarshal(respBody, &bucket)
 	if err != nil {
 		return bucket, fmt.Errorf("Could not unmarshall create bucket response JSON. Err: %s", err)
+	}
+
+	return bucket, err
+}
+
+// DeleteBucket destroys B2 bucket and returns API response and error
+func (creds *Credential) DeleteBucket(bucketID string) (bucket t.Bucket, err error) {
+	// Validate Input
+	if len(bucketID) < 1 {
+		return bucket, fmt.Errorf("Bucket ID given has invalid length, too short")
+	}
+
+	// Authorize and Get API Token
+	err = creds.authorize()
+	if err != nil {
+		return bucket, err
+	}
+
+	// Create JSON body
+	body := bytes.NewBuffer([]byte(`{"accountId": "` + creds.APIAuth.AccountID + `", "bucketId":"` + bucketID + `" }`))
+
+	// Create client
+	client := &http.Client{}
+
+	// Create request to (POST https://api001.backblazeb2.com/b2api/v1/b2_delete_bucket)
+	req, err := http.NewRequest("POST", creds.APIAuth.APIURL+"/b2api/v1/b2_delete_bucket", body)
+	fmt.Println(creds.APIAuth.APIURL + "/b2api/v1/b2_delete_bucket")
+	// Headers
+	req.Header.Add("Authorization", creds.APIAuth.AuthorizationToken)
+	req.Header.Add("Content-Type", "application/json; charset=utf-8")
+
+	// Fetch Request
+	resp, err := client.Do(req)
+	if err != nil {
+		return bucket, fmt.Errorf("Could not complete delete bucket request. Error: %s", err)
+	}
+
+	// Read Response Body
+	respBody, _ := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+
+	if resp.Status != "200 OK" {
+		return bucket, fmt.Errorf("Could not delete Bucket. API Resp Body: %s", string(respBody))
+	}
+	// Parse JSON 'Bucket' Response
+	err = json.Unmarshal(respBody, &bucket)
+	if err != nil {
+		return bucket, fmt.Errorf("Could not unmarshall delete bucket response JSON. Err: %s", err)
 	}
 
 	return bucket, err

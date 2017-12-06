@@ -39,6 +39,19 @@ func TestCreateBucket(t *testing.T) {
 	t.Log(bucket.BucketID)
 }
 
+func TestDeleteBucket(t *testing.T) {
+	cred, err := New("", "", "")
+	if err != nil {
+		t.Log(err)
+		t.FailNow()
+	}
+	bucket, err := cred.DeleteBucket("f6ae41d288a786a6589b0715")
+	if err != nil {
+		t.Log(err)
+		t.Fail()
+	}
+	t.Log("Deleted", bucket.BucketID)
+}
 func TestGetBuckets(t *testing.T) {
 	cred, err := New("", "", "")
 	if err != nil {

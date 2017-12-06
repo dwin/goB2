@@ -13,6 +13,7 @@ type APIAuthorization struct {
 
 type UploadAuth struct {
 	AuthorizationToken string `json:"authorizationToken"`
-	BucketId           string `json:"bucketId"`
+	BucketID           string `json:"bucketId,omitempty"`
+	FileID             string `json:"fileId,omitempty"`
 	URL                string `json:"uploadUrl"`
 }
