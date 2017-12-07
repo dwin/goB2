@@ -15,20 +15,27 @@ import (
 	"github.com/dustin/go-humanize"
 )
 
-// GetFiles returns all files in bucket
-func (creds *Credential) GetFiles(bucketID, startFile string) (files t.Files, err error) {
+// GetFiles returns specified number of files in bucket starting with given name, prefix, and delimiter. BucketID is required, other variables are optional per B2 API docs.
+func (creds *Credential) GetFiles(bucketID, startFileName, prefix, delimiter string, maxFileCount int) (files t.Files, err error) {
 	// Authorize and Get API Token
 	err = creds.authorize()
 	if err != nil {
 		return files, err
 	}
 
-	// Create json body
-	body := bytes.NewBuffer([]byte(`{"bucketId":"` + bucketID + `","startFileName":"` + startFile + `"}`))
+	// Create json body          **Max File Count not working, removed temporarily
+	reqjson, err := json.Marshal(t.RequestFile{
+		BucketID:      bucketID,
+		StartFileName: startFileName,
+		//MaxFileCount:  maxFileCount,
+		Prefix:    prefix,
+		Delimiter: delimiter,
+	})
+
 	// Create client
 	client := &http.Client{}
 	// Create request
-	req, err := http.NewRequest("POST", creds.APIAuth.APIURL+"/b2api/v1/b2_list_file_names", body)
+	req, err := http.NewRequest("POST", creds.APIAuth.APIURL+"/b2api/v1/b2_list_file_names", bytes.NewBuffer(reqjson))
 	req.Header.Add("Authorization", creds.APIAuth.AuthorizationToken)
 
 	// Fetch Request
@@ -48,6 +55,49 @@ func (creds *Credential) GetFiles(bucketID, startFile string) (files t.Files, er
 	}
 
 	return files, err
+}
+
+// GetFilesVersions returns specified number of files in bucket starting with given name, id, prefix, and delimiter. BucketID is required, other variables are optional per B2 API docs.
+func (creds *Credential) GetFilesVersions(bucketID, startFileName, startFileID, prefix, delimiter string, maxFileCount int) (files t.Files, nextFile t.File, err error) {
+	// Authorize and Get API Token
+	err = creds.authorize()
+	if err != nil {
+		return files, nextFile, err
+	}
+
+	// Create json body          **Max File Count not working, removed: "maxFileCount":"1000",
+	reqjson, err := json.Marshal(t.RequestFile{
+		BucketID:      bucketID,
+		StartFileName: startFileName,
+		StartFileID:   startFileID,
+		//MaxFileCount:  maxFileCount,
+		Prefix:    prefix,
+		Delimiter: delimiter,
+	})
+
+	// Create client
+	client := &http.Client{}
+	// Create request
+	req, err := http.NewRequest("POST", creds.APIAuth.APIURL+"/b2api/v1/b2_list_file_versions", bytes.NewBuffer(reqjson))
+	req.Header.Add("Authorization", creds.APIAuth.AuthorizationToken)
+
+	// Fetch Request
+	resp, err := client.Do(req)
+	if err != nil {
+		return files, nextFile, err
+	}
+	// Read Response
+	respBody, _ := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if resp.Status != "200 OK" {
+		return files, nextFile, fmt.Errorf("Error response from API. Err: %s", respBody)
+	}
+	err = json.Unmarshal(respBody, &files)
+	if err != nil {
+		return files, nextFile, fmt.Errorf("Error parsing JSON response for request all file versions for bucket %s. Err: %s", bucketID, err)
+	}
+
+	return files, nextFile, err
 }
 
 // CreateBucket makes new B2 bucket and returns API response and error

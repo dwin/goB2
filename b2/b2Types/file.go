@@ -19,6 +19,15 @@ type File struct {
 	UploadTimestamp int64             `json:"uploadTimestamp"`
 }
 
+type RequestFile struct {
+	BucketID      string `json:"bucketId"`
+	StartFileName string `json:"startFileName"`
+	StartFileID   string `json:"startFileId,omitempty"`
+	MaxFileCount  int    `json:"maxFileCount,omitempty"`
+	Prefix        string `json:"prefix"`
+	Delimiter     string `json:"delimiter,omitempty"`
+}
+
 /*
 type B2File struct {
 	AccountID   string `json:"accountId"`

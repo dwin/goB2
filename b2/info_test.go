@@ -16,7 +16,7 @@ func TestToGetFiles(t *testing.T) {
 		t.Log(err)
 		t.Fail()
 	}
-	files, err := cred.GetFiles(buckets.Bucket[0].BucketID, "")
+	files, err := cred.GetFiles(buckets.Bucket[0].BucketID, "", "", "", 100)
 	if err != nil {
 		t.Log(err)
 		t.Fail()
@@ -25,6 +25,26 @@ func TestToGetFiles(t *testing.T) {
 	PrintFiles(files)
 }
 
+func TestToGetFilesVersions(t *testing.T) {
+	cred, err := New("", "", "")
+	if err != nil {
+		t.Log(err)
+		t.FailNow()
+	}
+	buckets, err := cred.GetBuckets()
+	if err != nil {
+		t.Log(err)
+		t.Fail()
+	}
+	files, next, err := cred.GetFilesVersions(buckets.Bucket[0].BucketID, "", "", "", "", 100)
+	if err != nil {
+		t.Log(err)
+		t.Fail()
+	}
+	t.Log(next)
+	t.Log(files)
+	PrintFiles(files)
+}
 func TestCreateBucket(t *testing.T) {
 	cred, err := New("", "", "")
 	if err != nil {
@@ -78,7 +98,7 @@ func TestGetFileInfo(t *testing.T) {
 		t.Log(err)
 		t.Fail()
 	}
-	files, err := cred.GetFiles(buckets.Bucket[0].BucketID, "")
+	files, err := cred.GetFiles(buckets.Bucket[0].BucketID, "", "", "", 0)
 	if err != nil {
 		t.Log(err)
 		t.Fail()
